@@ -1,0 +1,2 @@
+"""MaintX schemas package."""
+
