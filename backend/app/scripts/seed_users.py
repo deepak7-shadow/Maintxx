@@ -20,7 +20,7 @@ SERVICE_KEY = os.getenv(
     'SUPABASE_SECRET_KEY',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZG1veGhmd3Nxa2hjc3JxdmF1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDE1ODMzNCwiZXhwIjoyMTA1NzM0MzM0fQ.6HWgVMB7n62M6LT18UY-lhtKFbKNMfJWq3jDRF53YkE'
 )
-BASE_URL = os.getenv('SUPABASE_URL', 'https://grdmoxhfwsqkhcsrqvau.supabase.co')
+BASE_URL = os.getenv('SUPABASE_URL', 'https://zbvlzsxlxjbmqqlbdhed.supabase.co')
 
 HEADERS = {
     'apikey': SERVICE_KEY,

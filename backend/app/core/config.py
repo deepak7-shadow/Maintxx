@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     
     # Supabase credentials (from environment)
-    SUPABASE_URL: str = "https://grdmoxhfwsqkhcsrqvau.supabase.co"
+    SUPABASE_URL: str = "https://zbvlzsxlxjbmqqlbdhed.supabase.co"
+    DATABASE_URL: str = "postgresql://postgres:Deepak8431%2A%2A%23%23%40%40@db.zbvlzsxlxjbmqqlbdhed.supabase.co:5432/postgres"
     SUPABASE_SECRET_KEY: str = ""
     SUPABASE_JWT_SECRET: str = ""
     
