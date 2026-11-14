@@ -338,6 +338,87 @@
       accent-color: var(--teal);
     }
 
+    .range-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .range-inputs-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .range-inputs-row input[type=range] {
+      flex: 1;
+      height: 6px;
+      cursor: pointer;
+      accent-color: var(--teal);
+    }
+
+    .num-adjuster-box {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 4px 8px;
+      min-width: 110px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .num-adjuster-box:focus-within {
+      border-color: var(--teal);
+      outline: 2px solid rgba(14, 124, 134, 0.25);
+    }
+
+    .num-adjuster-box input[type=number] {
+      width: 68px;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--txt);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      text-align: right;
+    }
+
+    .num-adjuster-box input[type=number]::-webkit-inner-spin-button,
+    .num-adjuster-box input[type=number]::-webkit-outer-spin-button {
+      opacity: 0.8;
+      cursor: pointer;
+    }
+
+    .num-adjuster-box .num-unit {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      user-select: none;
+    }
+
+    .range-scale-labels {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 0 2px;
+    }
+
+    .range-live-badge {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--teal);
+      background: var(--info-bg);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+    }
+
     select {
       width: 100%;
       padding: 8px;
@@ -816,7 +897,22 @@ window.MaintXSimulator.loadPlan([{controlId, approvedValue, label}]);</code></pr
           const chip = chipFor(c, val);
           let inputHtml = '';
           if (c.type === 'range') {
-            inputHtml = `<input type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${val}" data-id="${c.id}">`;
+            inputHtml = `
+              <div class="range-wrap">
+                <div class="range-inputs-row">
+                  <input type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${val}" data-id="${c.id}" class="ctrl-range-slider" id="slider_${c.id}">
+                  <div class="num-adjuster-box" title="Adjust or enter exact value">
+                    <input type="number" min="${c.min}" max="${c.max}" step="${c.step}" value="${val}" data-id="${c.id}" class="ctrl-num-input" id="num_${c.id}">
+                    <span class="num-unit">${(c.unit || '').trim()}</span>
+                  </div>
+                </div>
+                <div class="range-scale-labels">
+                  <span>min: ${c.min}${c.unit || ''}</span>
+                  <span class="range-live-badge" id="badge_${c.id}">Current: <b>${val}${c.unit || ''}</b></span>
+                  <span>max: ${c.max}${c.unit || ''}</span>
+                </div>
+              </div>
+            `;
           } else if (c.type === 'select') {
             inputHtml = `<select data-id="${c.id}">` + c.options.map(o => `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('') + `</select>`;
           } else if (c.type === 'toggle') {
@@ -842,9 +938,43 @@ window.MaintXSimulator.loadPlan([{controlId, approvedValue, label}]);</code></pr
       }
 
       function attachControlHandlers() {
+        // 1. Live real-time bidirectional synchronization between slider and number box
+        document.querySelectorAll('.ctrl-range-slider').forEach(sliderEl => {
+          const id = sliderEl.getAttribute('data-id');
+          const def = CONTROLS.find(c => c.id === id);
+          const numEl = document.getElementById('num_' + id);
+          const badgeEl = document.getElementById('badge_' + id);
+
+          sliderEl.addEventListener('input', () => {
+            const currentVal = sliderEl.value;
+            if (numEl) numEl.value = currentVal;
+            if (badgeEl) badgeEl.innerHTML = `Current: <b>${currentVal}${def.unit || ''}</b>`;
+          });
+        });
+
+        document.querySelectorAll('.ctrl-num-input').forEach(numEl => {
+          const id = numEl.getAttribute('data-id');
+          const def = CONTROLS.find(c => c.id === id);
+          const sliderEl = document.getElementById('slider_' + id);
+          const badgeEl = document.getElementById('badge_' + id);
+
+          numEl.addEventListener('input', () => {
+            const currentVal = numEl.value;
+            if (sliderEl && currentVal !== '') sliderEl.value = currentVal;
+            if (badgeEl && currentVal !== '') badgeEl.innerHTML = `Current: <b>${currentVal}${def.unit || ''}</b>`;
+          });
+
+          // Pressing Enter in number input commits the value immediately
+          numEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              numEl.blur();
+            }
+          });
+        });
+
+        // 2. Commit changes on 'change' event
         document.querySelectorAll('[data-id]').forEach(inputEl => {
-          const evtName = 'change';
-          inputEl.addEventListener(evtName, () => {
+          inputEl.addEventListener('change', () => {
             if (!state.active) {
               showToast('warning', 'Start a maintenance session before making changes.');
               renderControls();
@@ -853,7 +983,12 @@ window.MaintXSimulator.loadPlan([{controlId, approvedValue, label}]);</code></pr
             const id = inputEl.getAttribute('data-id');
             const def = CONTROLS.find(c => c.id === id);
             let newVal = inputEl.type === 'checkbox' ? (inputEl.checked ? 'ON' : 'OFF') : inputEl.value;
-            if (def.type === 'range') newVal = Number(newVal);
+            if (def.type === 'range') {
+              newVal = Number(newVal);
+              if (isNaN(newVal)) newVal = def.baseline;
+              if (def.min !== undefined) newVal = Math.max(def.min, newVal);
+              if (def.max !== undefined) newVal = Math.min(def.max, newVal);
+            }
             handleChange(def, newVal);
           });
         });
